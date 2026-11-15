@@ -1,12 +1,16 @@
-import { CONFIG } from "./config.js?v=10";
-import { planner, moonNav, ApiError } from "./api.js?v=10";
-import { mountMoon } from "./moon.js?v=10";
-import { MoonExplorer } from "./explorer.js?v=10";
-import { TerrainView } from "./gl3d.js?v=10";
-import { loadTerrain } from "./terrain.js?v=10";
-import { simulate, defaultStops, snapToTraversable, DEFAULT_ASSUMPTIONS, SCENARIOS } from "./safety.js?v=10";
-import { mountCabin } from "./cabin.js?v=10";
-import { lon180, project, unproject, haversineM } from "./geo.js?v=10";
+import { CONFIG } from "./config.js?v=11";
+import { planner, moonNav, ApiError, recordedRun } from "./api.js?v=11";
+// Hosted copy (GitHub Pages): say plainly that the planner result is a recorded real run, not a live one.
+if (CONFIG.replay) recordedRun().then((R) => document.body.insertAdjacentHTML("beforeend",
+  `<div class="replay-banner" role="note"><b>Recorded demo</b> The planner result is a replay of one real run on NASA data, recorded ${R.recorded_at_utc.slice(0, 10)} (terrain from NASA Moon Trek, Sun and Earth from NASA/JPL Horizons). `
+  + `Terrain, 3D explorer, browser routes and the safety simulation run live in your browser. For live planning, run the project locally: see the README on GitHub.</div>`)).catch(() => {});
+import { mountMoon } from "./moon.js?v=11";
+import { MoonExplorer } from "./explorer.js?v=11";
+import { TerrainView } from "./gl3d.js?v=11";
+import { loadTerrain } from "./terrain.js?v=11";
+import { simulate, defaultStops, snapToTraversable, DEFAULT_ASSUMPTIONS, SCENARIOS } from "./safety.js?v=11";
+import { mountCabin } from "./cabin.js?v=11";
+import { lon180, project, unproject, haversineM } from "./geo.js?v=11";
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -257,7 +261,8 @@ async function launch() {
   try {
     const resp = replan ? await planner.replan(S.plan, req) : await planner.plan(req);
     clearInterval(timer);
-    reqStatus("Response received", `HTTP 200 in ${((performance.now() - t0) / 1000).toFixed(2)} s. Backend runtime ${resp.metrics?.runtime_ms ?? "?"} ms, mission ${esc(resp.mission_id.slice(0, 8))}${replan ? " (same ID, replanned)" : ""}`, false);
+    if (CONFIG.replay) reqStatus("Recorded run loaded", `Replay of a real run recorded ${esc(new Date(resp.generated_at_utc).toISOString().slice(0, 16).replace("T", " "))} UTC (backend runtime then ${resp.metrics?.runtime_ms ?? "?"} ms), mission ${esc(resp.mission_id.slice(0, 8))}. Not re-planned for this page's settings.`, false);
+    else reqStatus("Response received", `HTTP 200 in ${((performance.now() - t0) / 1000).toFixed(2)} s. Backend runtime ${resp.metrics?.runtime_ms ?? "?"} ms, mission ${esc(resp.mission_id.slice(0, 8))}${replan ? " (same ID, replanned)" : ""}`, false);
     const states = Object.fromEntries(NODES.map((n) => [n.id, "done"])); if (!resp.requirements.require_navigation) states.navigation_analysis = "skipped";
     renderPipeline(states, evidenceFrom(resp));
     const c = resp.candidates, nSites = new Set(c.map((o) => o.site.site_id)).size, expected = 1 + c.length + (resp.requirements.require_navigation ? c.length : 0), tc = resp.metrics?.tool_calls;

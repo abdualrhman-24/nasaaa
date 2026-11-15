@@ -1,7 +1,7 @@
 // Hand-written WebGL terrain viewer (no Three.js: works offline with no build step).
 // Geometry = the terrain grid heights (Person 3 fixture, MOCK) with optional vertical exaggeration.
 // Fine surface texture in the shader and the star field / Earth disc are ILLUSTRATIVE only.
-import { project, unproject } from "./geo.js?v=10";
+import { project, unproject } from "./geo.js?v=11";
 
 // ---------- tiny mat4 (column-major) ----------
 const M = {

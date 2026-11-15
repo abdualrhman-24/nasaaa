@@ -1,7 +1,7 @@
 // Moon Explorer canvas map. Same projection and terrain colour ramps as Person 3's OpenLayers
 // Moon Explorer (original_modules/person3/moon_navigation/src/web/App.tsx), reimplemented without a
 // build step. Projected metres: +x east of lon 0 meridian, +y toward lon 0. North-up = +y up.
-import { project, unproject, rhoAtLat } from "./geo.js?v=10";
+import { project, unproject, rhoAtLat } from "./geo.js?v=11";
 
 const STRATEGY_COLOR = { shortest: "#5aa9ff", balanced: "#f2b84b", gentle: "#4cd08a" }; // Person 3 palette
 const BASEMAP_HALF = 150_000;

@@ -1,3 +1,11 @@
+# LUNA NAV AI: Lunar Landing Site Navigator (NASA Space Apps 2026)
+
+**Demo link (no install):** https://abdualrhman-24.github.io/nasaaa/
+
+The hosted page has no backend. The 3D LOLA explorer, browser routes and safety simulation run live. The planner result is a **recorded real run** on NASA data (LRO LOLA terrain from NASA Moon Trek, Sun and Earth from NASA/JPL Horizons), labelled as recorded on the page. For live planning, run it locally: see `PROJECT_HANDOFF.md`, section 6 (Windows PowerShell), then open `http://localhost:5173`.
+
+---
+
 # LUNA NAV AI — Person 4 Mission Optimizer
 
 Python 3.11+ standalone FastAPI service. All built-in values are **MOCK**, not lunar measurements. LangGraph coordinates supervisor, site, visibility, optional navigation, validation, optimization and explanation nodes. Optional structured LLM interpretation classifies mission type only; all measurements and scores come from deterministic services and code. No API key is required in mock mode.
