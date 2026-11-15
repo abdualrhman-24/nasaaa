@@ -2,7 +2,7 @@
 // Inputs that are measurements come from the backend plan (site, sunlight, Earth visibility, blackout)
 // and the terrain grid (Person 3 fixture, MOCK). Vehicle and crew figures are the user's PLANNING
 // ASSUMPTIONS, shown and editable in the UI. Every number below is a deterministic calculation.
-import { project, unproject } from "./geo.js?v=11";
+import { project, unproject } from "./geo.js?v=12";
 
 export const DEFAULT_ASSUMPTIONS = {
   rover: { max_slope_deg: 15, speed_mps: 0.2, battery_wh: 1500, reserve_pct: 20, drive_wh_per_km: 100, climb_wh_per_m: 0.6, hotel_w: 60, solar_w: 150, autonomy_h: 24 },

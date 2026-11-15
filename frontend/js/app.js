@@ -1,16 +1,16 @@
-import { CONFIG } from "./config.js?v=11";
-import { planner, moonNav, ApiError, recordedRun } from "./api.js?v=11";
+import { CONFIG } from "./config.js?v=12";
+import { planner, moonNav, ApiError, recordedRun } from "./api.js?v=12";
 // Hosted copy (GitHub Pages): say plainly that the planner result is a recorded real run, not a live one.
 if (CONFIG.replay) recordedRun().then((R) => document.body.insertAdjacentHTML("beforeend",
   `<div class="replay-banner" role="note"><b>Recorded demo</b> The planner result is a replay of one real run on NASA data, recorded ${R.recorded_at_utc.slice(0, 10)} (terrain from NASA Moon Trek, Sun and Earth from NASA/JPL Horizons). `
   + `Terrain, 3D explorer, browser routes and the safety simulation run live in your browser. For live planning, run the project locally: see the README on GitHub.</div>`)).catch(() => {});
-import { mountMoon } from "./moon.js?v=11";
-import { MoonExplorer } from "./explorer.js?v=11";
-import { TerrainView } from "./gl3d.js?v=11";
-import { loadTerrain } from "./terrain.js?v=11";
-import { simulate, defaultStops, snapToTraversable, DEFAULT_ASSUMPTIONS, SCENARIOS } from "./safety.js?v=11";
-import { mountCabin } from "./cabin.js?v=11";
-import { lon180, project, unproject, haversineM } from "./geo.js?v=11";
+import { mountMoon } from "./moon.js?v=12";
+import { MoonExplorer } from "./explorer.js?v=12";
+import { TerrainView } from "./gl3d.js?v=12";
+import { loadTerrain } from "./terrain.js?v=12";
+import { simulate, defaultStops, snapToTraversable, DEFAULT_ASSUMPTIONS, SCENARIOS } from "./safety.js?v=12";
+import { mountCabin } from "./cabin.js?v=12";
+import { lon180, project, unproject, haversineM } from "./geo.js?v=12";
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -779,7 +779,9 @@ async function checkNav() {
       + (isLola(terrain) ? ARTEMIS_REGIONS.filter((a) => terrain.inCoverage(a.lat, a.lon)).map((a) => `<option value='${JSON.stringify({ lat: a.lat, lon: a.lon, name: "Artemis III region: " + a.name })}'>NASA Artemis III region: ${esc(a.name)}</option>`).join("") : "");
     $("#nav-banner").className = "note";
     $("#nav-banner").innerHTML = `Terrain: ${esc(terrain.source.name)} ${tBadge(terrain)}, ${terrain.cell} m grid covering ${((terrain.maxX - terrain.ox) / 1000).toFixed(0)} × ${((terrain.maxY - terrain.oy) / 1000).toFixed(0)} km around the pole. ${isLola(terrain) ? `Real elevations measured by NASA's Lunar Reconnaissance Orbiter laser altimeter (${esc(terrain.source.observations || "")}), ${esc(terrain.source.version || "")}. Slopes computed from these heights.` : terrain.origin === "live" ? "Loaded live from the navigation module." : `Navigation module offline at ${esc(CONFIG.navBase)}, so this is the bundled snapshot of its fixture.`} ${terrain.status === "MOCK" ? "Synthetic, not NASA data." : ""}`;
-    if (S.plan) { if (S.plan.recommendation && !S.sim) runSim(); renderDossierQuiet(); }
+    // Terrain arrived after the plan (slow connection): redraw the dossier even if it is open, so site names
+    // (built from the terrain's named features) replace the raw site IDs.
+    if (S.plan) { if (S.plan.recommendation && !S.sim) runSim(); renderDossier(); }
   } catch (e) { led("terrain", "down", "unavailable"); $("#nav-banner").className = "note bad"; $("#nav-banner").textContent = `Terrain could not be loaded: ${e.message}`; }
   refreshExplorer(); legend(); renderRouteBox();
   if (!S.plan) $("#site-panel").innerHTML = `<p class="note">Launch a mission analysis to place the planner's candidate landing sites here. Meanwhile, click anywhere on the terrain to inspect elevation and slope.</p>`;
