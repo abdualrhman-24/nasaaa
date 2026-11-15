@@ -1,16 +1,15 @@
-import { CONFIG } from "./config.js?v=14";
-import { planner, moonNav, ApiError, recordedRun } from "./api.js?v=14";
+import { CONFIG } from "./config.js?v=15";
+import { planner, moonNav, ApiError, recordedRun } from "./api.js?v=15";
 // Hosted copy (GitHub Pages): say plainly that the planner result is a recorded real run, not a live one.
 if (CONFIG.replay) recordedRun().then((R) => document.body.insertAdjacentHTML("beforeend",
-  `<div class="replay-banner" role="note"><b>Recorded demo</b> The planner result is a replay of one real run on NASA data, recorded ${R.recorded_at_utc.slice(0, 10)} (terrain from NASA Moon Trek, Sun and Earth from NASA/JPL Horizons). `
-  + `Terrain, 3D explorer, browser routes and the safety simulation run live in your browser. For live planning, run the project locally: see the README on GitHub.</div>`)).catch(() => {});
-import { mountMoon } from "./moon.js?v=14";
-import { MoonExplorer } from "./explorer.js?v=14";
-import { TerrainView } from "./gl3d.js?v=14";
-import { loadTerrain } from "./terrain.js?v=14";
-import { simulate, defaultStops, snapToTraversable, reachableMask, DEFAULT_ASSUMPTIONS, SCENARIOS } from "./safety.js?v=14";
-import { mountCabin } from "./cabin.js?v=14";
-import { lon180, project, unproject, haversineM } from "./geo.js?v=14";
+  `<div class="replay-banner" role="note"><b>Recorded demo</b> Planner result replayed from a real run on NASA data (${R.recorded_at_utc.slice(0, 10)}); terrain and simulation run live. Live planning: run it locally (README). <button class="rb-close" aria-label="Hide this note" onclick="this.parentElement.remove()">OK</button></div>`)).catch(() => {});
+import { mountMoon } from "./moon.js?v=15";
+import { MoonExplorer } from "./explorer.js?v=15";
+import { TerrainView } from "./gl3d.js?v=15";
+import { loadTerrain } from "./terrain.js?v=15";
+import { simulate, defaultStops, snapToTraversable, reachableMask, DEFAULT_ASSUMPTIONS, SCENARIOS } from "./safety.js?v=15";
+import { mountCabin } from "./cabin.js?v=15";
+import { lon180, project, unproject, haversineM } from "./geo.js?v=15";
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -132,6 +131,7 @@ function go(phase) {
   if (phase === "explore") { mountView("slot-explore"); setViewMode(S.viewMode); refreshExplorer(); if (!go.fitted) { explorer.fitSites(); go.fitted = true; } }
   if (phase === "safety") { mountView("slot-safety"); renderSafety(); }
   if (phase !== "explore" && phase !== "safety") exitWalk(true);
+  if (phase !== "safety") stopPlayback();
   scrollTo(0, 0);
 }
 $$(".step").forEach((b) => b.addEventListener("click", () => !b.disabled && go(b.dataset.go)));
@@ -219,7 +219,7 @@ const NODES = [
 function renderPipeline(states = {}, evidence = {}) {
   $("#pipeline").innerHTML = NODES.map((n, i) => {
     const s = states[n.id] || "idle";
-    const pill = { idle: "Standing by", waiting: "Awaiting response", done: "Ran, confirmed by response", skipped: "Skipped by graph", halted: "Not confirmed" }[s];
+    const pill = { idle: "Standing by", waiting: "Awaiting response", running: "Replaying recorded step", done: "Ran, confirmed by response", skipped: "Skipped by graph", halted: "Not confirmed" }[s];
     const ev = evidence[n.id];
     return `<li class="agent${n.branch ? " branch" : ""}" data-s="${s}"><div class="node">${String(i + 1).padStart(2, "0")}</div>
       <div class="card"><div class="row1"><h3>${n.name}</h3><span class="pill">${pill}</span></div><p class="role">${n.role}</p>
@@ -264,6 +264,19 @@ async function launch() {
     if (CONFIG.replay) reqStatus("Recorded run loaded", `Replay of a real run recorded ${esc(new Date(resp.generated_at_utc).toISOString().slice(0, 16).replace("T", " "))} UTC (backend runtime then ${resp.metrics?.runtime_ms ?? "?"} ms), mission ${esc(resp.mission_id.slice(0, 8))}. Not re-planned for this page's settings.`, false);
     else reqStatus("Response received", `HTTP 200 in ${((performance.now() - t0) / 1000).toFixed(2)} s. Backend runtime ${resp.metrics?.runtime_ms ?? "?"} ms, mission ${esc(resp.mission_id.slice(0, 8))}${replan ? " (same ID, replanned)" : ""}`, false);
     const states = Object.fromEntries(NODES.map((n) => [n.id, "done"])); if (!resp.requirements.require_navigation) states.navigation_analysis = "skipped";
+    if (CONFIG.replay) {   // recorded run: step through the agents in graph order so visitors see the process (labelled as a replay)
+      const ev = evidenceFrom(resp), st = Object.fromEntries(NODES.map((n) => [n.id, "waiting"])), shown = {};
+      for (const [k, n] of NODES.entries()) {
+        if (states[n.id] === "skipped") { st[n.id] = "skipped"; continue; }
+        st[n.id] = "running"; renderPipeline(st, shown);
+        reqStatus("Replaying recorded run", `Agent ${k + 1} of ${NODES.length}: ${esc(n.name)}`, true);
+        $("#pipeline").children[k]?.scrollIntoView({ block: "center", behavior: "smooth" });
+        await new Promise((r) => setTimeout(r, 900));
+        st[n.id] = "done"; if (ev[n.id]) shown[n.id] = ev[n.id];
+      }
+      scrollTo({ top: 0, behavior: "smooth" });
+      reqStatus("Recorded run loaded", `Replay of a real run recorded ${esc(new Date(resp.generated_at_utc).toISOString().slice(0, 16).replace("T", " "))} UTC (backend runtime then ${resp.metrics?.runtime_ms ?? "?"} ms), mission ${esc(resp.mission_id.slice(0, 8))}. Not re-planned for this page's settings.`, false);
+    }
     renderPipeline(states, evidenceFrom(resp));
     const c = resp.candidates, nSites = new Set(c.map((o) => o.site.site_id)).size, expected = 1 + c.length + (resp.requirements.require_navigation ? c.length : 0), tc = resp.metrics?.tool_calls;
     $("#cc-foot").innerHTML = `<p>Tool calls reported by the backend: <b>${tc}</b>${tc === expected ? `, matching 1 site query, ${c.length} visibility analyses${resp.requirements.require_navigation ? ` and ${c.length} route queries` : ""}` : tc < expected ? `. Fewer than ${expected} because verified measurements were reused` : ""}. ${nSites} sites over ${resp.requirements.dates_utc.length} days.</p>
@@ -726,6 +739,10 @@ function renderSafety() {
   $("#walk-route").addEventListener("click", () => enterWalk({ lat: st.landing.lat, lon: st.landing.lon, name: "Landing zone" }));
   $$("#assume input", side).forEach((inp) => inp.addEventListener("change", () => { const v = +inp.value; if (!Number.isFinite(v) || v < 0) return; const [a, b] = inp.dataset.k.split(".");
     if (b) S.assumptions[a][b] = v; else S.assumptions[a] = v; runSim(); renderSafety(); $(`#assume input[data-k="${inp.dataset.k}"]`)?.closest("details")?.setAttribute("open", ""); }));
+  stopPlayback();
+  side.querySelector(".verdict")?.insertAdjacentHTML("afterend", `<div class="pb"><button class="btn primary" id="pb-btn">▶ Play mission</button>
+    <p id="pb-status" class="cap">Watch the rover drive its route, then the astronaut walk the EVA path, on the 3D LOLA terrain. Times use the planning assumptions below.</p></div>`);
+  $("#pb-btn").onclick = () => (PB.raf ? stopPlayback() : startPlayback());
   drawSafety(); renderDossierQuiet();
 }
 function renderDossierQuiet() { if (S.phase !== "discover") renderDossier(); }
@@ -744,6 +761,36 @@ function timelineSvg(R) {
     <text x="6" y="46" fill="var(--dust)" font-size="10.5">landing</text></svg>
     <div class="contrib-keys"><span><i style="background:var(--ground)"></i>Driving</span><span><i style="background:var(--link)"></i>Sampling</span><span><i style="background:var(--sun)"></i>Recharge</span></div>`;
 }
+/* ---- Mission playback: moves the rover, then the astronaut, along the simulated routes. Positions come from the
+ * simulated waypoints; the clock uses the editable assumptions (rover speed, astronaut walking pace), sped up. ---- */
+const PB = { raf: 0 };
+function stopPlayback() { cancelAnimationFrame(PB.raf); PB.raf = 0; if (view && S.sfMarkers) view.setMarkers(S.sfMarkers); const b = $("#pb-btn"); if (b) b.textContent = "▶ Play mission"; }
+function startPlayback() {
+  stopPlayback(); const R = S.sim; if (!view || !R || R.error || S.phase !== "safety") return;
+  const A = R.assumptions, legs = [];
+  const add = (who, list) => list.forEach((l, i) => { if (!l.ok || !(l.waypoints?.length > 1)) return;
+    const pts = l.waypoints.map((w) => project(w.lat_deg, w.lon_deg)), cum = [0];
+    for (let k = 1; k < pts.length; k++) cum.push(cum[k - 1] + Math.hypot(pts[k].x - pts[k - 1].x, pts[k].y - pts[k - 1].y));
+    const mps = who === "rover" ? A.rover.speed_mps : (A.astronaut.walk_kmh || 2) / 3.6;
+    legs.push({ who, i, n: list.length, l, pts, cum, len: cum[cum.length - 1], h: cum[cum.length - 1] / mps / 3600 }); });
+  add("rover", R.rover); add("astro", R.astro); if (!legs.length) return;
+  const totalLen = legs.reduce((a, g) => a + g.len, 0), secs = Math.min(30, Math.max(12, totalLen / 1000 * 1.2)); let last = 0, prev = performance.now(), el = 0;   // el: visible playback seconds (pauses in hidden tabs)
+  const b = $("#pb-btn"); if (b) b.textContent = "■ Stop";
+  const step = (now) => {
+    el += Math.min(now - prev, 100) / 1000; prev = now;
+    let d = (el / secs) * totalLen, g = legs[0];
+    for (g of legs) { if (d <= g.len) break; d -= g.len; }
+    d = Math.min(d, g.len); let k = 1; while (k < g.cum.length - 1 && g.cum[k] < d) k++;
+    const f = (d - g.cum[k - 1]) / Math.max(1e-9, g.cum[k] - g.cum[k - 1]), x = g.pts[k - 1].x + f * (g.pts[k].x - g.pts[k - 1].x), y = g.pts[k - 1].y + f * (g.pts[k].y - g.pts[k - 1].y), ll = unproject(x, y);
+    const legH = (d / g.len) * g.h, label = g.who === "rover" ? `Rover, leg ${g.i + 1} of ${g.n}` : `Astronaut EVA, leg ${g.i + 1} of ${g.n}`;
+    if (now - last > 70) { last = now;
+      view.setMarkers([...(S.sfMarkers || []), { id: "PB", lat: ll.lat_deg, lon: ll.lon_deg, label, color: g.who === "rover" ? COLORS.rover : COLORS.astro, kind: "stop" }]);
+      const st = $("#pb-status"); if (st) st.textContent = `${label}: ${esc(g.l.from)} to ${esc(g.l.to)}, ${(d / 1000).toFixed(2)} of ${(g.len / 1000).toFixed(2)} km, about ${legH.toFixed(1)} of ${g.h.toFixed(1)} h on this leg.`; }
+    if (g === legs[legs.length - 1] && d >= g.len) { const st = $("#pb-status"); if (st) st.textContent = `Playback finished: ${legs.filter((x) => x.who === "rover").length} rover legs and ${legs.filter((x) => x.who === "astro").length} EVA legs, ${(totalLen / 1000).toFixed(1)} km in total.`; PB.raf = 0; const bb = $("#pb-btn"); if (bb) bb.textContent = "▶ Play again"; return; }
+    PB.raf = requestAnimationFrame(step);
+  };
+  PB.raf = requestAnimationFrame(step);
+}
 function drawSafety() {
   if (!view || !S.sim || S.sim.error || S.phase !== "safety") return; const R = S.sim, st = S.stops;
   const markers = [{ id: "L", lat: st.landing.lat, lon: st.landing.lon, label: "Landing zone", color: COLORS.recommended, kind: "plan" },
@@ -753,7 +800,7 @@ function drawSafety() {
   R.rover.forEach((l) => l.ok && paths.push({ points: l.waypoints, color: [0.66, 0.79, 0.6, 0.95], width_m: 300, walkWidth: 0.5 }));
   R.astro.forEach((l) => l.ok && paths.push({ points: l.waypoints, color: [0.41, 0.78, 0.93, 0.95], width_m: 170, walkWidth: 0.35 }));
   if (R.ridge) paths.push({ points: [R.ridge.a, R.ridge.b], color: [0.94, 0.48, 0.42, 0.75], width_m: 700, walkWidth: 700 });
-  view.setMarkers(markers); view.setPaths(paths); view.setRings(R.obstacle ? [{ x: R.obstacle.x, y: R.obstacle.y, radius_m: R.obstacle.radius_m, color: [0.94, 0.48, 0.42, 0.9] }] : []);
+  S.sfMarkers = markers; view.setMarkers(markers); view.setPaths(paths); view.setRings(R.obstacle ? [{ x: R.obstacle.x, y: R.obstacle.y, radius_m: R.obstacle.radius_m, color: [0.94, 0.48, 0.42, 0.9] }] : []);
   if (!drawSafety.framed || drawSafety.framed !== st.landing.name) { drawSafety.framed = st.landing.name; const a = project(st.landing.lat, st.landing.lon), b = project(st.destination.lat, st.destination.lon);
     const mid = unproject((a.x + b.x) / 2, (a.y + b.y) / 2); if (view.mode !== "walk") view.flyTo(mid.lat_deg, mid.lon_deg, Math.max(22000, Math.hypot(a.x - b.x, a.y - b.y) * 2.2)); }
   $("#sf-legend").innerHTML = `<div class="k"><span class="dot" style="background:var(--ground)"></span>Rover route</div><div class="k"><span class="dot" style="background:var(--link)"></span>Astronaut EVA path</div>
@@ -798,6 +845,6 @@ applyPreset("science"); renderPipeline(); go("cabin"); checkPlanner(); const nav
 if (CONFIG.replay && new URLSearchParams(location.search).get("autoplay") !== "0") (async () => {
   await launch();                                   // replays the recorded plan; shows the agents page meanwhile
   await navReady;                                   // terrain needed by the simulation (slow connections: wait)
-  if (S.plan?.recommendation) { if (!S.sim) runSim(); if (S.phase === "agents") go("safety"); }
+  if (S.plan?.recommendation) { if (!S.sim) runSim(); if (S.phase === "agents") { go("safety"); setTimeout(startPlayback, 1800); } }
 })();
 window.__luna = { S, explorer, view, go, runSim };

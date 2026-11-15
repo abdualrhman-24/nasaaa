@@ -5,9 +5,9 @@
 // Pathfinding: a line-by-line browser port of Person 3 src/server/pathfinding.ts + routeService.ts
 // (same 8-connected A*, same slope blocking, same strategy weights, same distance maths), extended with
 // an optional obstacle mask used only by the hazard scenarios.
-import { project, unproject, haversineM, MOON_R } from "./geo.js?v=14";
-import { moonNav } from "./api.js?v=14";
-import { CONFIG } from "./config.js?v=14";
+import { project, unproject, haversineM, MOON_R } from "./geo.js?v=15";
+import { moonNav } from "./api.js?v=15";
+import { CONFIG } from "./config.js?v=15";
 
 export const STRATEGY_WEIGHT = { shortest: 0, balanced: 4, gentle: 24 };
 
