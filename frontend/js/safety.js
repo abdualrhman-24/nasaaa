@@ -2,7 +2,7 @@
 // Inputs that are measurements come from the backend plan (site, sunlight, Earth visibility, blackout)
 // and the terrain grid (Person 3 fixture, MOCK). Vehicle and crew figures are the user's PLANNING
 // ASSUMPTIONS, shown and editable in the UI. Every number below is a deterministic calculation.
-import { project, unproject } from "./geo.js?v=12";
+import { project, unproject } from "./geo.js?v=14";
 
 export const DEFAULT_ASSUMPTIONS = {
   rover: { max_slope_deg: 15, speed_mps: 0.2, battery_wh: 1500, reserve_pct: 20, drive_wh_per_km: 100, climb_wh_per_m: 0.6, hotel_w: 60, solar_w: 150, autonomy_h: 24 },
@@ -179,22 +179,42 @@ export function simulate({ terrain, option, requirements, stops, assumptions, sc
     duration: dur, actors, terrainOrigin: terrain.origin, terrainStatus: terrain.status, notes };
 }
 
+/** Cells reachable from `from` moving between 8-neighbours whose slope is <= limit (the same passability rule
+ *  as Terrain.findPath). Uint8Array, 1 = reachable. */
+export function reachableMask(terrain, from, limit) {
+  const { cols, rows } = terrain, p = project(from.lat, from.lon), c = terrain.cellOf(p.x, p.y);
+  const seen = new Uint8Array(cols * rows), start = c.j * cols + c.i;
+  if (terrain.slope[start] > limit) return seen;
+  const q = new Int32Array(cols * rows); let h = 0, t = 0; q[t++] = start; seen[start] = 1;
+  while (h < t) { const k = q[h++], i = k % cols, j = (k - i) / cols;
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const a = i + di, b = j + dj, n = b * cols + a;
+      if ((di || dj) && a >= 0 && b >= 0 && a < cols && b < rows && !seen[n] && terrain.slope[n] <= limit) { seen[n] = 1; q[t++] = n; } } }
+  return seen;
+}
+
 /** Move a stop to the nearest cell whose own slope and all 8 neighbours are under 70% of the limit
- *  (within 4 km). Returns the stop with snapped_m set, or the original stop if nothing qualifies. */
-export function snapToTraversable(terrain, stop, limit, awayFrom = null, minAway = 500) {
+ *  (within 4 km). With `reach` (from reachableMask), only cells the rover can actually get to from the landing
+ *  site qualify, so a stop is never placed on a flat patch cut off by crater walls.
+ *  Returns the stop with snapped_m set, or the original stop if nothing qualifies. */
+export function snapToTraversable(terrain, stop, limit, awayFrom = null, minAway = 500, reach = null) {
   const p = project(stop.lat, stop.lon), c = terrain.cellOf(p.x, p.y), R = Math.ceil(4000 / terrain.cell);
   const away = awayFrom ? project(awayFrom.lat, awayFrom.lon) : null;
   const ok = (i, j) => {
+    if (reach && !reach[j * terrain.cols + i]) return false;
     if (away) { const q = terrain.cellCenter(i, j); if (Math.hypot(q.x - away.x, q.y - away.y) < minAway) return false; }
     for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const a = i + di, b = j + dj;
       if (a < 0 || b < 0 || a >= terrain.cols || b >= terrain.rows || terrain.slope[b * terrain.cols + a] > 0.7 * limit) return false; }
     return true; };
-  if (ok(c.i, c.j)) return { ...stop, snapped_m: 0 };
+  if (ok(c.i, c.j)) return { ...stop, snapped_m: 0, reach_checked: !!reach };
   let best = null;
-  for (let j = c.j - R; j <= c.j + R; j++) for (let i = c.i - R; i <= c.i + R; i++) { if (!ok(i, j)) continue; const d = Math.hypot(i - c.i, j - c.j); if (!best || d < best.d) best = { i, j, d }; }
-  if (!best) return { ...stop, snapped_m: null };
+  const search = (r) => { for (let j = c.j - r; j <= c.j + r; j++) for (let i = c.i - r; i <= c.i + r; i++) { if (!ok(i, j)) continue; const d = Math.hypot(i - c.i, j - c.j); if (!best || d < best.d) best = { i, j, d }; } };
+  search(R);
+  // A target inside a crater (e.g. "toward Shackleton" from its rim) has only steep, unreachable wall around it:
+  // with reachability known, take the closest ground the rover can reach toward it, up to 15 km away.
+  if (!best && reach) search(Math.ceil(15000 / terrain.cell));
+  if (!best) return { ...stop, snapped_m: null, reach_checked: !!reach };
   const q = terrain.cellCenter(best.i, best.j), ll = unproject(q.x, q.y);
-  return { ...stop, lat: ll.lat_deg, lon: ll.lon_deg, snapped_m: Math.hypot(q.x - p.x, q.y - p.y), from: { lat: stop.lat, lon: stop.lon } };
+  return { ...stop, lat: ll.lat_deg, lon: ll.lon_deg, snapped_m: Math.hypot(q.x - p.x, q.y - p.y), from: { lat: stop.lat, lon: stop.lon }, reach_checked: !!reach };
 }
 
 /** Default destination + sample point: nearest navigation-module site to the landing site inside coverage,

@@ -1,16 +1,16 @@
-import { CONFIG } from "./config.js?v=12";
-import { planner, moonNav, ApiError, recordedRun } from "./api.js?v=12";
+import { CONFIG } from "./config.js?v=14";
+import { planner, moonNav, ApiError, recordedRun } from "./api.js?v=14";
 // Hosted copy (GitHub Pages): say plainly that the planner result is a recorded real run, not a live one.
 if (CONFIG.replay) recordedRun().then((R) => document.body.insertAdjacentHTML("beforeend",
   `<div class="replay-banner" role="note"><b>Recorded demo</b> The planner result is a replay of one real run on NASA data, recorded ${R.recorded_at_utc.slice(0, 10)} (terrain from NASA Moon Trek, Sun and Earth from NASA/JPL Horizons). `
   + `Terrain, 3D explorer, browser routes and the safety simulation run live in your browser. For live planning, run the project locally: see the README on GitHub.</div>`)).catch(() => {});
-import { mountMoon } from "./moon.js?v=12";
-import { MoonExplorer } from "./explorer.js?v=12";
-import { TerrainView } from "./gl3d.js?v=12";
-import { loadTerrain } from "./terrain.js?v=12";
-import { simulate, defaultStops, snapToTraversable, DEFAULT_ASSUMPTIONS, SCENARIOS } from "./safety.js?v=12";
-import { mountCabin } from "./cabin.js?v=12";
-import { lon180, project, unproject, haversineM } from "./geo.js?v=12";
+import { mountMoon } from "./moon.js?v=14";
+import { MoonExplorer } from "./explorer.js?v=14";
+import { TerrainView } from "./gl3d.js?v=14";
+import { loadTerrain } from "./terrain.js?v=14";
+import { simulate, defaultStops, snapToTraversable, reachableMask, DEFAULT_ASSUMPTIONS, SCENARIOS } from "./safety.js?v=14";
+import { mountCabin } from "./cabin.js?v=14";
+import { lon180, project, unproject, haversineM } from "./geo.js?v=14";
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -669,8 +669,11 @@ function buildStops(o) {
   const landing = { lat: o.site.latitude_deg, lon: lon180(o.site.longitude_deg), name: nm(o.site) };
   const d = defaultStops(S.terrain, landing, S.p3Sites); if (!d) return null;
   const lim = Math.min(S.assumptions.rover.max_slope_deg, S.assumptions.astronaut.max_slope_deg);
-  const dest = snapToTraversable(S.terrain, S.customStops.destination || d.destination, lim);
-  const smp = snapToTraversable(S.terrain, S.customStops.sample || d.sample, lim, dest);
+  // Automatic stops go only where the rover can drive from the landing site (connected under the slope limit);
+  // stops the user picks are kept where they were picked.
+  const reach = S.customStops.destination && S.customStops.sample ? null : reachableMask(S.terrain, landing, lim);
+  const dest = snapToTraversable(S.terrain, S.customStops.destination || d.destination, lim, null, 500, S.customStops.destination ? null : reach);
+  const smp = snapToTraversable(S.terrain, S.customStops.sample || d.sample, lim, dest, 500, S.customStops.sample ? null : reach);
   return { landing, deploy: d.deploy, destination: dest, sample: smp, list: [landing, d.deploy, dest, smp, { ...landing, name: "Landing site (return)" }] };
 }
 function runSim() {
@@ -692,7 +695,7 @@ function renderSafety() {
   if (!R || R.error) { side.innerHTML = `<p class="kicker">Mission 05</p><h1 id="h-safety">Safety and continuity</h1><p class="note bad">${esc(R?.error || "Terrain is still loading.")}</p>`; return; }
   const A = R.assumptions, o = R.option, st = S.stops;
   const lim = Math.min(A.rover.max_slope_deg, A.astronaut.max_slope_deg);
-  const snapNote = (s) => (s.snapped_m > 0 ? `<small style="color:var(--sun)">Moved ${fmtM(s.snapped_m)} from the chosen point to ground under ${(0.7 * lim).toFixed(1)}°</small>` : s.snapped_m === null ? `<small style="color:var(--halt)">No drivable ground within 4 km of this point</small>` : "");
+  const snapNote = (s) => (s.snapped_m > 0 ? `<small style="color:var(--sun)">Moved ${fmtM(s.snapped_m)} from the chosen point to ground under ${(0.7 * lim).toFixed(1)}°${s.reach_checked ? " that the rover can reach from the landing site" : ""}</small>` : s.snapped_m === null ? `<small style="color:var(--halt)">No ${s.reach_checked ? "reachable " : ""}drivable ground within 4 km of this point</small>` : "");
   const stopRow = (s, label, key) => `<li><span><b>${esc(label)}</b><small>${esc(s.name)}, ${latS(s.lat)} ${lonE(s.lon)}</small>${snapNote(s)}</span>${key ? `<button class="btn" data-pick="${key}">${S.pick === key ? "Click the map" : "Move"}</button>` : "<span></span>"}</li>`;
   const tl = timelineSvg(R);
   side.innerHTML = `<p class="kicker">Mission 05</p><h1 id="h-safety">Safety and continuity</h1>
@@ -789,5 +792,12 @@ async function checkNav() {
 $("#svc-planner").onclick = async () => toast((await checkPlanner()) ? `Planner online at ${CONFIG.apiBase}` : `Planner offline at ${CONFIG.apiBase}. Add ?api=URL to point elsewhere.`);
 $("#svc-nav").onclick = async () => { await checkNav(); toast(S.navOnline ? `Navigation online at ${CONFIG.navBase}` : `Navigation offline at ${CONFIG.navBase}. Using the bundled terrain snapshot.`); };
 
-applyPreset("science"); renderPipeline(); go("cabin"); checkPlanner(); checkNav();
+applyPreset("science"); renderPipeline(); go("cabin"); checkPlanner(); const navReady = checkNav();
+// Hosted demo: open straight into the recorded run and its safety simulation, so visitors do not have to find
+// the Launch button first. ?autoplay=0 keeps the normal start (cabin, then mission setup).
+if (CONFIG.replay && new URLSearchParams(location.search).get("autoplay") !== "0") (async () => {
+  await launch();                                   // replays the recorded plan; shows the agents page meanwhile
+  await navReady;                                   // terrain needed by the simulation (slow connections: wait)
+  if (S.plan?.recommendation) { if (!S.sim) runSim(); if (S.phase === "agents") go("safety"); }
+})();
 window.__luna = { S, explorer, view, go, runSim };
