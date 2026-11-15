@@ -151,6 +151,14 @@ Person 3: routes (Express, :3003, optional) ─ ─ ─ ─ ─ ─ ─ ┤
     - Adapter: a 422 from Person 3 (no route within the slope limit, or off the grid) marks that site "route inaccessible" instead of failing the plan. One route per site serves every landing day.
     - Routes change the ranking. Test run (2 days, 96 h, target then at the Connecting ridge): the recommendation moved to −89.31°, 245.9°E, 10.5 km from the target. The choice now depends on the target you set.
 17. **Pareto layer (T4)**: each option carries `pareto_layer` (1 = non-dominated). The alternatives table shows a "Pareto layer" column and a one-line note on why a lower row can have a higher score.
+19. **Hosted demo (GitHub Pages)**:
+    - Root `index.html` opens `frontend/?v=14`, so visitors skip pages cached by GitHub Pages (10 min).
+    - On any host other than localhost, the planner **replays one recorded real run**: `frontend/data/recorded_run.json`, saved unchanged from `start_real_nasa.ps1 -Terrain moontrek` with the interface defaults, plus its sky data. A banner, the status line and the first plan warning say it is recorded. Re-planning, the baseline comparison and other sites' sky charts refuse with a message instead of inventing values. `?replay=1` or `?replay=0` overrides.
+    - Autoplay: the hosted page loads the recorded run and opens the safety simulation once the terrain has loaded. `?autoplay=0` keeps the normal start.
+    - Terrain, 3D explorer, browser routes, LUNA WALK and the safety simulation run live in the visitor's browser on the Moon Trek LOLA grid.
+    - To refresh the recording after a backend change: run the stack, POST the interface defaults to `/mission/plan` and the recommended site to `/mission/sky`, and rebuild `recorded_run.json` the same way.
+20. **Safety simulation, reachable survey points**: automatic survey and sample points now snap only to ground the rover can reach from the landing site (flood fill under the slope limit, the same rule as the A* port). For a site on Shackleton's rim, "5 km toward Shackleton" had fallen on an isolated patch inside the crater, giving a false NO-GO. It now uses the closest reachable ground toward that target (up to 15 km away) and says how far it moved. Points the user picks are unchanged.
+21. **Landing-site page**: redraws when the terrain arrives after the plan, so sites get readable names on slow connections.
 18. **Robustness and housekeeping**:
     - `LUNA_MEMBER2_ENGINE=horizons`, set by `start_real_nasa.ps1`, gives Horizons Person 2's own 60 s × 3 retries. The default "auto" engine tries once for 15 s and then needs SPICE kernels, which are not installed, so one slow Horizons answer failed the whole plan.
     - Frontend modules are cache-busted with `?v=10`.
@@ -208,24 +216,25 @@ py -3.13 -m venv .venv
 
 ---
 
-## 7. Accuracy results (full run, 2026-11-14; quick run 2026-11-15 identical)
+## 7. Accuracy results
 
-| Check | Ours | Reference | Result |
-| --- | --- | --- | --- |
-| Shackleton depth | 4.10 km | 4.1 km | PASS |
-| Shackleton diameter | 20.6 km | 21 km | PASS |
-| Slope vs NASA LDSM | corr 0.94, mean −0.7°, \|diff\| 1.0°, 96.8% same 15° decision | NASA LDSM_75S_240M | PASS |
-| Shackleton floor sunlight | 0% | 0% | PASS |
-| Sunlight A / B / C / D (at local peak) | 88.9 / 93.8 / 85.3 / 88.3% | 81 / 82 / 85 / 86% | PASS |
-| Sites vs Artemis III | 1 of 6 inside, 0.4 km from "Peak Near Shackleton" | ≥ 1 inside | PASS |
-| End-to-end | no MOCK, 6 candidates | no MOCK | PASS |
+Two terrain sources, same checks. PDS full run 2026-11-14, PDS quick run 2026-11-15 (identical). Moon Trek full run 2026-11-15 (`accuracy_report_moontrek.md`) and quick run (`accuracy_report_quick_moontrek.md`).
 
-**Latest recommended site:**
-- Location: −88.807°, 123.6°E, elevation about 1646 m.
-- Sunlight 96 of 96 h; Earth in view 74–96 h, depending on the day.
-- Slope 0.6–0.7°; safety verdict GO.
+| Check | PDS `LDEM_75S_240M` | Moon Trek export | Reference | Result (both) |
+| --- | --- | --- | --- | --- |
+| Shackleton depth | 4.10 km | 4.10 km | 4.1 km | PASS |
+| Shackleton diameter | 20.6 km | 20.6 km | 21 km | PASS |
+| Slope vs NASA LDSM | corr 0.94, mean −0.7°, \|diff\| 1.0°, 96.8% same 15° decision | corr 0.94, mean −0.7°, \|diff\| 1.0°, 96.7% | NASA LDSM_75S_240M | PASS |
+| Shackleton floor sunlight | 0% | 0% | 0% | PASS |
+| Sunlight A / B / C / D (local peak) | 88.9 / 93.8 / 85.3 / 88.3% | 88.9 / 93.8 / 86.5 / 88.3% | 81 / 82 / 85 / 86% | PASS |
+| Sites vs Artemis III | 1 of 6 inside, 0.4 km from "Peak Near Shackleton" | same 6 sites | ≥ 1 inside | PASS |
+| End-to-end | no MOCK, 6 candidates | no MOCK, 6 candidates | no MOCK | PASS |
 
----
+Moon Trek grid against PDS, cell by cell, within 76 km of the pole: mean +0.08 m, mean |diff| 1.86 m, 99th percentile 10.1 m, correlation 0.999997.
+
+**Recommended site** (depends on settings and, with routes, on the traverse target):
+- Without routes (earlier runs): −88.807°, 123.6°E, elevation about 1646 m. Sunlight 96 of 96 h; Earth in view 74-96 h depending on the day. Slope 0.6-0.7°. Safety verdict GO.
+- Interface defaults with Person 3 routes (target at the pole, traverse limit 10 km, recorded for the hosted demo): "Shackleton rim, 10.5 km from centre", −89.779°, 204.27°E, 3 Jan 2030. Sun above the terrain all 97 hourly samples, Earth too. Safety verdict GO WITH CONDITIONS (16.4 km rover loop).
 
 ## 8. Problems solved (for reference)
 
@@ -259,7 +268,9 @@ py -3.13 -m venv .venv
 
 Done on 2026-11-15: T1 (Moon Trek terrain), T2 (Sky and horizon chart), T3 (Person 3 routes), T4 (Pareto layer). See section 5, items 14-18.
 
-**T5. GitHub (partly done).** The repository is initialised on branch `main`. `.gitignore` also excludes the Moon Trek tile cache (`moontrek_cache/`, `*.npy`, about 200 MB). Checked: no `.venv`, `*.img`, `*.lbl`, `.env`, `node_modules` or keys are staged. Push needs the team's repository URL.
+**T5. GitHub (done).** Repository https://github.com/abdualrhman-24/nasaaa, branch `main`. `.gitignore` also excludes the Moon Trek tile cache (`moontrek_cache/`, `*.npy`, about 200 MB). Checked before every commit: no `.venv`, `*.img`, `*.lbl`, `.env`, `node_modules` or keys. Commits use the GitHub noreply address.
+
+**Demo link for judges:** https://abdualrhman-24.github.io/nasaaa/ (GitHub Pages from `main`, root; the team also added `.github/workflows/jekyll-gh-pages.yml`, and both deployments succeed). See section 5, item 19.
 
 **Next, if time allows:**
 - Choose the traverse target with the team (a science target such as a permanently shadowed crater edge), and show it on the map.
