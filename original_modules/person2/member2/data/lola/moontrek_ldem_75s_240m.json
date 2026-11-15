@@ -1,0 +1,29 @@
+{
+ "product": "moontrek_ldem_75s_240m",
+ "source_tool": "NASA Moon Trek",
+ "layer": "LRO_LOLA_DEM_SPole75_30mp_v04",
+ "layer_title": "LRO LOLA DEM, 75 deg v4, S Pole",
+ "service": "https://trek.nasa.gov/moon/trekarcgis/rest/services/LRO_LOLA_DEM_SPole75_30mp_v04/ImageServer",
+ "catalogue": "https://trek.nasa.gov/moon/TrekServices/ws/index/getLayerServices?uuid=975eb591-9d09-4cc5-9ab3-b6f85f338944",
+ "downloaded_utc": "2026-11-15T09:44:21Z",
+ "native_resolution_m": 30.0,
+ "output_resolution_m": 240.0,
+ "native_average_half_width_km": 92.16,
+ "inner_cells_incomplete_kept_server_value": 0,
+ "outer_nodata_cells": 0,
+ "description": "NASA Moon Trek layer LRO_LOLA_DEM_SPole75_30mp_v04 (LRO LOLA DEM, 75 deg v4, S Pole), LRO LOLA, via https://trek.nasa.gov/moon/trekarcgis/rest/services/LRO_LOLA_DEM_SPole75_30mp_v04/ImageServer; 30 m pixels averaged to 240 m within 92.16 km of the pole, Moon Trek 240 m resampling beyond",
+ "vs_pds_ldem_75s_240m": {
+  "within_76_km_of_pole": {
+   "mean_m": 0.08,
+   "mean_abs_m": 1.86,
+   "p99_abs_m": 10.1,
+   "corr": 0.999997
+  },
+  "whole_grid": {
+   "mean_m": 0.47,
+   "mean_abs_m": 15.65,
+   "p99_abs_m": 69.5,
+   "corr": 0.999956
+  }
+ }
+}

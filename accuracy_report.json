@@ -1,0 +1,114 @@
+[
+ {
+  "check": "Shackleton depth (rim crest mean minus floor), NASA LOLA 240 m",
+  "status": "PASS",
+  "measured": "4.10 km",
+  "reference": "4.1 km [R1]",
+  "tolerance": "\u00b10.4 km (240 m pixels smooth the rim)",
+  "note": ""
+ },
+ {
+  "check": "Shackleton rim diameter, NASA LOLA 240 m",
+  "status": "PASS",
+  "measured": "20.6 km",
+  "reference": "21 km [R1]",
+  "tolerance": "\u00b12.5 km",
+  "note": ""
+ },
+ {
+  "check": "Our DEM-derived slope vs NASA official slope map (90 S to 87.5 S)",
+  "status": "PASS",
+  "measured": "correlation 0.94, mean difference -0.7\u00b0, mean |difference| 1.0\u00b0, same 15\u00b0 pass/block decision on 96.8% of cells",
+  "reference": "NASA LDSM_75S_240M [R5]",
+  "tolerance": "correlation \u2265 0.7",
+  "note": "NASA slopes use a 30-120 m baseline, ours 240 m, so ours read gentler; the mean difference is the safety margin to subtract from slope limits"
+ },
+ {
+  "check": "Person 1 elevation (LDEM_75S_240M) minus LOLA 240 m, 6 sites",
+  "status": "PASS",
+  "measured": "mean |diff| 0 m, max 0 m",
+  "reference": "same instrument, different gridding",
+  "tolerance": "mean \u2264 300 m",
+  "note": "Person 1 resolution 240 m; both are heights above the 1737.4 km sphere"
+ },
+ {
+  "check": "Person 1 slope minus LOLA 240 m slope",
+  "status": "INFO",
+  "measured": "mean +0.0\u00b0, mean |diff| 0.0\u00b0",
+  "reference": "n/a",
+  "tolerance": "",
+  "note": "Coarser grids report gentler slopes; differences show the resolution effect, not an error"
+ },
+ {
+  "check": "Person 1 candidate sites inside NASA Artemis III candidate regions",
+  "status": "PASS",
+  "measured": "1 of 6 within 7.5 km of a region centre; (-88.458,-67.8) 27.3 km from Connecting Ridge Extension; (-89.445,-137.3) 12.0 km from Connecting Ridge; (-88.807,123.6) 0.4 km from Peak Near Shackleton; (-89.311,-114.1) 10.9 km from Connecting Ridge Extension; (-88.666,-68.2) 22.4 km from Connecting Ridge Extension; (-89.779,-155.7) 22.6 km from Connecting Ridge",
+  "reference": "NASA Artemis III regions [R4]",
+  "tolerance": "\u22651 site inside a region",
+  "note": "Independent check: NASA chose these regions for sunlight, slope and Earth contact"
+ },
+ {
+  "check": "Shackleton floor sunlit fraction, 2020 (Person 2: Horizons + LOLA horizon)",
+  "status": "PASS",
+  "measured": "0.0% (REAL, 57 s)",
+  "reference": "0% (permanent shadow) [R2]",
+  "tolerance": "\u2264 1%",
+  "note": ""
+ },
+ {
+  "check": "Sunlit fraction at point A, Shackleton ridge, lunar year 2020",
+  "status": "PASS",
+  "measured": "88.9% at the local peak (-89.6896, -162.95), 679 m from the published point and 132 m higher (205 s)",
+  "reference": "81% [R3] at (-89.68, -166.0)",
+  "tolerance": "\u00b115 points PASS, \u00b125 WARN",
+  "note": "Published points are peaks on 20 m terrain; on the 240 m grid the exact coordinate lies on the flank, so the test uses the nearest LOLA peak within 1.4 km"
+ },
+ {
+  "check": "Sunlit fraction at point B, peak near ridge, lunar year 2020",
+  "status": "PASS",
+  "measured": "93.8% at the local peak (-89.4455, -137.31), 1358 m from the published point and 161 m higher (147 s)",
+  "reference": "82% [R3] at (-89.44, -141.8)",
+  "tolerance": "\u00b115 points PASS, \u00b125 WARN",
+  "note": "Published points are peaks on 20 m terrain; on the 240 m grid the exact coordinate lies on the flank, so the test uses the nearest LOLA peak within 1.4 km"
+ },
+ {
+  "check": "Sunlit fraction at point C, de Gerlache ridge, lunar year 2020",
+  "status": "PASS",
+  "measured": "85.3% at the local peak (-88.6663, -68.23), 1399 m from the published point and 52 m higher (205 s)",
+  "reference": "85% [R3] at (-88.71, -68.7)",
+  "tolerance": "\u00b115 points PASS, \u00b125 WARN",
+  "note": "Published points are peaks on 20 m terrain; on the 240 m grid the exact coordinate lies on the flank, so the test uses the nearest LOLA peak within 1.4 km"
+ },
+ {
+  "check": "Sunlit fraction at point D, peak near Shackleton, lunar year 2020",
+  "status": "PASS",
+  "measured": "88.3% at the local peak (-88.8070, 123.64), 720 m from the published point and 45 m higher (196 s)",
+  "reference": "86% [R3] at (-88.79, 124.5)",
+  "tolerance": "\u00b115 points PASS, \u00b125 WARN",
+  "note": "Published points are peaks on 20 m terrain; on the 240 m grid the exact coordinate lies on the flank, so the test uses the nearest LOLA peak within 1.4 km"
+ },
+ {
+  "check": "End-to-end plan uses no MOCK values",
+  "status": "PASS",
+  "measured": "statuses ['UNVERIFIED']; 6 candidates in 30 s",
+  "reference": "no MOCK",
+  "tolerance": "",
+  "note": "UNVERIFIED = supplier REAL data not independently reviewed"
+ },
+ {
+  "check": "Visibility hours stay within the stay length",
+  "status": "PASS",
+  "measured": "all \u2264 48 h",
+  "reference": "\u2264 48 h",
+  "tolerance": "",
+  "note": ""
+ },
+ {
+  "check": "Recommendation",
+  "status": "INFO",
+  "measured": "site_16f508a3a6ea sunlight 48.0 h, Earth 26.3 h",
+  "reference": "",
+  "tolerance": "",
+  "note": "UNVERIFIED supplier data accepted for testing (LUNA_ALLOW_UNVERIFIED_RECOMMENDATION=1): NASA-derived values not independently reviewed; provisional, not a flight recommendation"
+ }
+]

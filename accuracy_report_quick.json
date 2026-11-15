@@ -1,0 +1,90 @@
+[
+ {
+  "check": "Shackleton depth (rim crest mean minus floor), NASA LOLA 240 m",
+  "status": "PASS",
+  "measured": "4.10 km",
+  "reference": "4.1 km [R1]",
+  "tolerance": "\u00b10.4 km (240 m pixels smooth the rim)",
+  "note": ""
+ },
+ {
+  "check": "Shackleton rim diameter, NASA LOLA 240 m",
+  "status": "PASS",
+  "measured": "20.6 km",
+  "reference": "21 km [R1]",
+  "tolerance": "\u00b12.5 km",
+  "note": ""
+ },
+ {
+  "check": "Our DEM-derived slope vs NASA official slope map (90 S to 87.5 S)",
+  "status": "PASS",
+  "measured": "correlation 0.94, mean difference -0.7\u00b0, mean |difference| 1.0\u00b0, same 15\u00b0 pass/block decision on 96.8% of cells",
+  "reference": "NASA LDSM_75S_240M [R5]",
+  "tolerance": "correlation \u2265 0.7",
+  "note": "NASA slopes use a 30-120 m baseline, ours 240 m, so ours read gentler; the mean difference is the safety margin to subtract from slope limits"
+ },
+ {
+  "check": "Person 1 elevation (LDEM_75S_240M) minus LOLA 240 m, 6 sites",
+  "status": "PASS",
+  "measured": "mean |diff| 0 m, max 0 m",
+  "reference": "same instrument, different gridding",
+  "tolerance": "mean \u2264 300 m",
+  "note": "Person 1 resolution 240 m; both are heights above the 1737.4 km sphere"
+ },
+ {
+  "check": "Person 1 slope minus LOLA 240 m slope",
+  "status": "INFO",
+  "measured": "mean +0.0\u00b0, mean |diff| 0.0\u00b0",
+  "reference": "n/a",
+  "tolerance": "",
+  "note": "Coarser grids report gentler slopes; differences show the resolution effect, not an error"
+ },
+ {
+  "check": "Person 1 candidate sites inside NASA Artemis III candidate regions",
+  "status": "PASS",
+  "measured": "1 of 6 within 7.5 km of a region centre; (-88.458,-67.8) 27.3 km from Connecting Ridge Extension; (-89.445,-137.3) 12.0 km from Connecting Ridge; (-88.807,123.6) 0.4 km from Peak Near Shackleton; (-89.311,-114.1) 10.9 km from Connecting Ridge Extension; (-88.666,-68.2) 22.4 km from Connecting Ridge Extension; (-89.779,-155.7) 22.6 km from Connecting Ridge",
+  "reference": "NASA Artemis III regions [R4]",
+  "tolerance": "\u22651 site inside a region",
+  "note": "Independent check: NASA chose these regions for sunlight, slope and Earth contact"
+ },
+ {
+  "check": "Shackleton floor sunlit fraction, 2020 (Person 2: Horizons + LOLA horizon)",
+  "status": "PASS",
+  "measured": "0.0% (REAL, 373 s)",
+  "reference": "0% (permanent shadow) [R2]",
+  "tolerance": "\u2264 1%",
+  "note": ""
+ },
+ {
+  "check": "Sunlit fraction at published peaks A-D",
+  "status": "SKIP",
+  "measured": "skipped with --quick (each needs a full lunar year from Horizons)",
+  "reference": "81-86% [R3]",
+  "tolerance": "",
+  "note": "Run without --quick for these four checks; last full run is in accuracy_report.md"
+ },
+ {
+  "check": "End-to-end plan uses no MOCK values",
+  "status": "PASS",
+  "measured": "statuses ['UNVERIFIED']; 6 candidates in 102 s",
+  "reference": "no MOCK",
+  "tolerance": "",
+  "note": "UNVERIFIED = supplier REAL data not independently reviewed"
+ },
+ {
+  "check": "Visibility hours stay within the stay length",
+  "status": "PASS",
+  "measured": "all \u2264 48 h",
+  "reference": "\u2264 48 h",
+  "tolerance": "",
+  "note": ""
+ },
+ {
+  "check": "Recommendation",
+  "status": "INFO",
+  "measured": "site_d09ba45a8ac5 sunlight 48.0 h, Earth 26.3 h",
+  "reference": "",
+  "tolerance": "",
+  "note": "UNVERIFIED supplier data accepted for testing (LUNA_ALLOW_UNVERIFIED_RECOMMENDATION=1): NASA-derived values not independently reviewed; provisional, not a flight recommendation"
+ }
+]

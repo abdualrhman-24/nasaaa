@@ -1,0 +1,28 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Node (Person 3)
+node_modules/
+
+# Secrets: never commit keys
+.env
+*.key
+
+# NASA LOLA source files are large; download them with scripts/get_nasa_lola.py
+*.img
+*.IMG
+*.lbl
+*.LBL
+
+# Local builds
+*.zip
+
+# Claude working folder on this machine
+Claude outputs/
+
+# Moon Trek export tile cache (about 200 MB); rebuild with scripts/get_moontrek_lola.py
+moontrek_cache/
+*.npy
